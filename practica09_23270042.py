@@ -1,5 +1,7 @@
 import mysql.connector
 
+# Repositorio de GitHub: https://github.com/LucioEdu/ABD
+
 def conectar():
     return mysql.connector.connect(
         host="localhost",
