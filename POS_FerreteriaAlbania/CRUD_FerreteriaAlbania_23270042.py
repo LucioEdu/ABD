@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-# ------------------ Conexión MySQL ------------------
+# ----------- Conexión MySQL -----------
 
 conexion = mysql.connector.connect(
     host='localhost',
@@ -15,7 +15,7 @@ conexion = mysql.connector.connect(
     database='ferreteriaalbania_23270042'
 )
 
-# ------------------ Funciones MySQL ------------------
+# ----------- Funciones MySQL -----------
 
 # Funciones Cliente
 def obtener_clientes():
@@ -63,7 +63,51 @@ def eliminar_proveedor(id_proveedor):
     cursor.execute("DELETE FROM proveedor WHERE id_proveedor = %s", (id_proveedor,))
     conexion.commit()
 
-# ------------------ CRUD Cliente ------------------
+# Funciones Artículo
+def obtener_articulos():
+    cursor = conexion.cursor()
+    cursor.execute("SELECT id_articulo, nombre, descripcion, precio, id_categoria, id_proveedor FROM articulo")
+    return cursor.fetchall()
+
+def insertar_articulo(nombre, descripcion, precio, id_categoria, id_proveedor):
+    cursor = conexion.cursor()
+    cursor.execute("INSERT INTO articulo (nombre, descripcion, precio, id_categoria, id_proveedor) VALUES (%s, %s, %s, %s, %s)", 
+                   (nombre, descripcion, precio, id_categoria, id_proveedor))
+    conexion.commit()
+
+def actualizar_articulo(id_articulo, nombre, descripcion, precio, id_categoria, id_proveedor):
+    cursor = conexion.cursor()
+    cursor.execute("UPDATE articulo SET nombre = %s, descripcion = %s, precio = %s, id_categoria = %s, id_proveedor = %s WHERE id_articulo = %s", 
+                   (nombre, descripcion, precio, id_categoria, id_proveedor, id_articulo))
+    conexion.commit()
+
+def eliminar_articulo(id_articulo):
+    cursor = conexion.cursor()
+    cursor.execute("DELETE FROM articulo WHERE id_articulo = %s", (id_articulo,))
+    conexion.commit()
+
+# Funciones Categoría
+def obtener_categorias():
+    cursor = conexion.cursor()
+    cursor.execute("SELECT id_categoria, nombre FROM categoria")
+    return cursor.fetchall()
+
+def insertar_categoria(nombre):
+    cursor = conexion.cursor()
+    cursor.execute("INSERT INTO categoria (nombre) VALUES (%s)", (nombre,))
+    conexion.commit()
+
+def actualizar_categoria(id_categoria, nombre):
+    cursor = conexion.cursor()
+    cursor.execute("UPDATE categoria SET nombre = %s WHERE id_categoria = %s", (nombre, id_categoria))
+    conexion.commit()
+
+def eliminar_categoria(id_categoria):
+    cursor = conexion.cursor()
+    cursor.execute("DELETE FROM categoria WHERE id_categoria = %s", (id_categoria,))
+    conexion.commit()
+
+# ----------- CRUD Cliente -----------
 
 class ClienteCRUD(QWidget):
     def __init__(self):
@@ -75,7 +119,6 @@ class ClienteCRUD(QWidget):
         self.titulo.setStyleSheet("font-size: 18px; font-weight: bold;")
         self.layout.addWidget(self.titulo)
 
-        # Agregar campos para RFC y Dirección
         self.nombre_input = QLineEdit()
         self.nombre_input.setPlaceholderText("Nombre")
 
@@ -118,11 +161,11 @@ class ClienteCRUD(QWidget):
         self.layout.addWidget(self.label_lista)
 
         self.tabla = QTableWidget()
-        self.tabla.setColumnCount(6)  # Ahora son 6 columnas
+        self.tabla.setColumnCount(6)
         self.tabla.setHorizontalHeaderLabels(["ID", "Nombre", "Teléfono", "Email", "RFC", "Dirección"])
         self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.tabla.verticalHeader().setVisible(False)  # Ocultar la columna de numeración
-        self.tabla.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)  # Permitir edición de celdas
+        self.tabla.verticalHeader().setVisible(False)
+        self.tabla.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)
         self.layout.addWidget(self.tabla)
 
         # Botones de navegación
@@ -203,7 +246,7 @@ class ClienteCRUD(QWidget):
             eliminar_cliente(id_cliente)
             self.actualizar_tabla()
 
-# ------------------ CRUD Proveedor ------------------
+# ----------- CRUD Proveedor -----------
 
 class ProveedorCRUD(QWidget):
     def __init__(self):
@@ -266,11 +309,11 @@ class ProveedorCRUD(QWidget):
         self.layout.addWidget(self.label_lista)
 
         self.tabla = QTableWidget()
-        self.tabla.setColumnCount(8)  # Son 8 columnas
+        self.tabla.setColumnCount(8)
         self.tabla.setHorizontalHeaderLabels(["ID", "Nombre", "Teléfono", "Email", "Dirección", "Ciudad", "Estado", "País"])
         self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.tabla.verticalHeader().setVisible(False)  # Ocultar la columna de numeración
-        self.tabla.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)  # Permitir edición de celdas
+        self.tabla.verticalHeader().setVisible(False)
+        self.tabla.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)
         self.layout.addWidget(self.tabla)
 
         self.setLayout(self.layout)
@@ -340,50 +383,271 @@ class ProveedorCRUD(QWidget):
             eliminar_proveedor(id_proveedor)
             self.actualizar_tabla()
 
-# ------------------ Main Window ------------------
+# ----------- CRUD Artículo -----------
 
-class MainWindow(QMainWindow):
+class ArticuloCRUD(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Sistema de Gestión Ferretería")
-        self.setGeometry(100, 100, 800, 600)
+        self.layout = QVBoxLayout()
 
-        self.stacked_widget = QStackedWidget()
-        self.setCentralWidget(self.stacked_widget)
+        self.titulo = QLabel("Formulario Artículo")
+        self.titulo.setStyleSheet("font-size: 18px; font-weight: bold;")
+        self.layout.addWidget(self.titulo)
 
-        # Ventanas de cliente y proveedor
-        self.cliente_window = ClienteCRUD()
-        self.proveedor_window = ProveedorCRUD()
+        # Campos para los artículos
+        self.nombre_input = QLineEdit()
+        self.nombre_input.setPlaceholderText("Nombre")
 
-        # Añadir las ventanas al stacked widget
-        self.stacked_widget.addWidget(self.cliente_window)
-        self.stacked_widget.addWidget(self.proveedor_window)
+        self.descripcion_input = QLineEdit()
+        self.descripcion_input.setPlaceholderText("Descripción")
 
-        # Crear el menú principal
-        self.menu_layout = QHBoxLayout()
+        self.precio_input = QLineEdit()
+        self.precio_input.setPlaceholderText("Precio")
 
+        self.id_categoria_input = QLineEdit()
+        self.id_categoria_input.setPlaceholderText("ID Categoría")
+
+        self.id_proveedor_input = QLineEdit()
+        self.id_proveedor_input.setPlaceholderText("ID Proveedor")
+
+        # Botones
+        self.boton_layout = QHBoxLayout()
+
+        self.btn_agregar = QPushButton("Agregar")
+        self.btn_agregar.clicked.connect(self.agregar_articulo)
+        self.boton_layout.addWidget(self.btn_agregar)
+
+        self.btn_actualizar = QPushButton("Actualizar")
+        self.btn_actualizar.clicked.connect(self.actualizar_articulo)
+        self.boton_layout.addWidget(self.btn_actualizar)
+
+        self.btn_eliminar = QPushButton("Eliminar")
+        self.btn_eliminar.clicked.connect(self.eliminar_articulo)
+        self.boton_layout.addWidget(self.btn_eliminar)
+
+        self.layout.addWidget(self.nombre_input)
+        self.layout.addWidget(self.descripcion_input)
+        self.layout.addWidget(self.precio_input)
+        self.layout.addWidget(self.id_categoria_input)
+        self.layout.addWidget(self.id_proveedor_input)
+        self.layout.addLayout(self.boton_layout)
+
+        self.label_lista = QLabel("Lista de Artículos")
+        self.label_lista.setStyleSheet("font-size: 16px; font-weight: bold;")
+        self.layout.addWidget(self.label_lista)
+
+        self.tabla = QTableWidget()
+        self.tabla.setColumnCount(6)
+        self.tabla.setHorizontalHeaderLabels(["ID", "Nombre", "Descripción", "Precio", "ID Categoría", "ID Proveedor"])
+        self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.tabla.verticalHeader().setVisible(False)
+        self.tabla.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)
+        self.layout.addWidget(self.tabla)
+
+        self.setLayout(self.layout)
+        self.actualizar_tabla()
+
+    def actualizar_tabla(self):
+        datos = obtener_articulos()
+        self.tabla.setRowCount(0)
+        for fila_num, fila_datos in enumerate(datos):
+            self.tabla.insertRow(fila_num)
+            for col, valor in enumerate(fila_datos):
+                self.tabla.setItem(fila_num, col, QTableWidgetItem(str(valor)))
+
+    def agregar_articulo(self):
+        nombre = self.nombre_input.text()
+        descripcion = self.descripcion_input.text()
+        precio = self.precio_input.text()
+        id_categoria = self.id_categoria_input.text()
+        id_proveedor = self.id_proveedor_input.text()
+
+        if nombre and descripcion and precio and id_categoria and id_proveedor:
+            try:
+                insertar_articulo(nombre, descripcion, float(precio), int(id_categoria), int(id_proveedor))
+                self.nombre_input.clear()
+                self.descripcion_input.clear()
+                self.precio_input.clear()
+                self.id_categoria_input.clear()
+                self.id_proveedor_input.clear()
+                self.actualizar_tabla()
+            except ValueError:
+                QMessageBox.warning(self, "Error", "Precio, ID Categoría e ID Proveedor deben ser números.")
+
+    def actualizar_articulo(self):
+        fila_seleccionada = self.tabla.currentRow()
+        if fila_seleccionada == -1:
+            QMessageBox.warning(self, "Advertencia", "Selecciona un artículo para actualizar.")
+            return
+
+        id_articulo = self.tabla.item(fila_seleccionada, 0).text()
+        nombre = self.tabla.item(fila_seleccionada, 1).text()
+        descripcion = self.tabla.item(fila_seleccionada, 2).text()
+        precio = self.tabla.item(fila_seleccionada, 3).text()
+        id_categoria = self.tabla.item(fila_seleccionada, 4).text()
+        id_proveedor = self.tabla.item(fila_seleccionada, 5).text()
+
+        if nombre and descripcion and precio and id_categoria and id_proveedor:
+            try:
+                actualizar_articulo(id_articulo, nombre, descripcion, float(precio), int(id_categoria), int(id_proveedor))
+                self.actualizar_tabla()
+            except ValueError:
+                QMessageBox.warning(self, "Error", "Precio, ID Categoría e ID Proveedor deben ser números.")
+
+    def eliminar_articulo(self):
+        fila_seleccionada = self.tabla.currentRow()
+        if fila_seleccionada == -1:
+            QMessageBox.warning(self, "Advertencia", "Selecciona un artículo para eliminar.")
+            return
+
+        id_articulo = self.tabla.item(fila_seleccionada, 0).text()
+
+        confirmacion = QMessageBox.question(
+            self, "Confirmación", "¿Estás seguro de eliminar este artículo?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        if confirmacion == QMessageBox.StandardButton.Yes:
+            eliminar_articulo(id_articulo)
+            self.actualizar_tabla()
+
+# ----------- CRUD Categoría -----------
+
+class CategoriaCRUD(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.layout = QVBoxLayout()
+
+        self.titulo = QLabel("Formulario Categoría")
+        self.titulo.setStyleSheet("font-size: 18px; font-weight: bold;")
+        self.layout.addWidget(self.titulo)
+
+        # Campo para la categoría
+        self.nombre_input = QLineEdit()
+        self.nombre_input.setPlaceholderText("Nombre de la Categoría")
+        self.layout.addWidget(self.nombre_input)
+
+        # Botones
+        self.boton_layout = QHBoxLayout()
+
+        self.btn_agregar = QPushButton("Agregar")
+        self.btn_agregar.clicked.connect(self.agregar_categoria)
+        self.boton_layout.addWidget(self.btn_agregar)
+
+        self.btn_actualizar = QPushButton("Actualizar")
+        self.btn_actualizar.clicked.connect(self.actualizar_categoria)
+        self.boton_layout.addWidget(self.btn_actualizar)
+
+        self.btn_eliminar = QPushButton("Eliminar")
+        self.btn_eliminar.clicked.connect(self.eliminar_categoria)
+        self.boton_layout.addWidget(self.btn_eliminar)
+
+        self.layout.addLayout(self.boton_layout)
+
+        self.label_lista = QLabel("Lista de Categorías")
+        self.label_lista.setStyleSheet("font-size: 16px; font-weight: bold;")
+        self.layout.addWidget(self.label_lista)
+
+        self.tabla = QTableWidget()
+        self.tabla.setColumnCount(2)
+        self.tabla.setHorizontalHeaderLabels(["ID", "Nombre"])
+        self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.tabla.verticalHeader().setVisible(False)
+        self.tabla.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)
+        self.layout.addWidget(self.tabla)
+
+        self.setLayout(self.layout)
+        self.actualizar_tabla()
+
+    def actualizar_tabla(self):
+        datos = obtener_categorias()
+        self.tabla.setRowCount(0)
+        for fila_num, fila_datos in enumerate(datos):
+            self.tabla.insertRow(fila_num)
+            for col, valor in enumerate(fila_datos):
+                self.tabla.setItem(fila_num, col, QTableWidgetItem(str(valor)))
+
+    def agregar_categoria(self):
+        nombre = self.nombre_input.text()
+        if nombre:
+            insertar_categoria(nombre)
+            self.nombre_input.clear()
+            self.actualizar_tabla()
+
+    def actualizar_categoria(self):
+        fila_seleccionada = self.tabla.currentRow()
+        if fila_seleccionada == -1:
+            QMessageBox.warning(self, "Advertencia", "Selecciona una categoría para actualizar.")
+            return
+
+        id_categoria = self.tabla.item(fila_seleccionada, 0).text()
+        nombre = self.tabla.item(fila_seleccionada, 1).text()
+
+        if nombre:
+            actualizar_categoria(id_categoria, nombre)
+            self.actualizar_tabla()
+
+    def eliminar_categoria(self):
+        fila_seleccionada = self.tabla.currentRow()
+        if fila_seleccionada == -1:
+            QMessageBox.warning(self, "Advertencia", "Selecciona una categoría para eliminar.")
+            return
+
+        id_categoria = self.tabla.item(fila_seleccionada, 0).text()
+
+        confirmacion = QMessageBox.question(
+            self, "Confirmación", "¿Estás seguro de eliminar esta categoría?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        if confirmacion == QMessageBox.StandardButton.Yes:
+            eliminar_categoria(id_categoria)
+            self.actualizar_tabla()
+
+# ----------- Ventana Principal -----------
+
+class VentanaPrincipal(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Sistema Ferretería La Albania")
+        self.setGeometry(100, 100, 900, 600)
+
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+
+        self.stack = QStackedWidget()
+        self.cliente_crud = ClienteCRUD()
+        self.proveedor_crud = ProveedorCRUD()
+        self.articulo_crud = ArticuloCRUD()
+        self.categoria_crud = CategoriaCRUD()
+
+        self.stack.addWidget(self.cliente_crud)
+        self.stack.addWidget(self.proveedor_crud)
+        self.stack.addWidget(self.articulo_crud)
+        self.stack.addWidget(self.categoria_crud)
+
+        self.botones_menu = QHBoxLayout()
         self.btn_clientes = QPushButton("Clientes")
-        self.btn_clientes.clicked.connect(self.mostrar_clientes)
-        self.menu_layout.addWidget(self.btn_clientes)
-
         self.btn_proveedores = QPushButton("Proveedores")
-        self.btn_proveedores.clicked.connect(self.mostrar_proveedores)
-        self.menu_layout.addWidget(self.btn_proveedores)
+        self.btn_articulos = QPushButton("Artículos")
+        self.btn_categorias = QPushButton("Categorías")
 
-        # Crear el layout para el menú
-        menu_widget = QWidget()
-        menu_widget.setLayout(self.menu_layout)
+        self.btn_clientes.clicked.connect(lambda: self.stack.setCurrentWidget(self.cliente_crud))
+        self.btn_proveedores.clicked.connect(lambda: self.stack.setCurrentWidget(self.proveedor_crud))
+        self.btn_articulos.clicked.connect(lambda: self.stack.setCurrentWidget(self.articulo_crud))
+        self.btn_categorias.clicked.connect(lambda: self.stack.setCurrentWidget(self.categoria_crud))
 
-        self.setMenuWidget(menu_widget)
+        self.botones_menu.addWidget(self.btn_clientes)
+        self.botones_menu.addWidget(self.btn_proveedores)
+        self.botones_menu.addWidget(self.btn_articulos)
+        self.botones_menu.addWidget(self.btn_categorias)
 
-    def mostrar_clientes(self):
-        self.stacked_widget.setCurrentWidget(self.cliente_window)
+        self.layout.addLayout(self.botones_menu)
+        self.layout.addWidget(self.stack)
 
-    def mostrar_proveedores(self):
-        self.stacked_widget.setCurrentWidget(self.proveedor_window)
+# ----------- Main -----------
 
 if __name__ == "__main__":
+    import sys
     app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
+    ventana = VentanaPrincipal()
+    ventana.show()
     sys.exit(app.exec())
