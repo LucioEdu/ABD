@@ -107,6 +107,30 @@ def eliminar_categoria(id_categoria):
     cursor.execute("DELETE FROM categoria WHERE id_categoria = %s", (id_categoria,))
     conexion.commit()
 
+# Funciones Empleados
+# Funciones para Empleado
+def obtener_empleados():
+    cursor = conexion.cursor()
+    cursor.execute("SELECT id_empleado, nombre, puesto, salario, telefono FROM empleado")
+    return cursor.fetchall()
+
+def insertar_empleado(nombre, puesto, salario, telefono):
+    cursor = conexion.cursor()
+    cursor.execute("INSERT INTO empleado (nombre, puesto, salario, telefono) VALUES (%s, %s, %s, %s)",
+                   (nombre, puesto, salario, telefono))
+    conexion.commit()
+
+def actualizar_empleado(id_empleado, nombre, puesto, salario, telefono):
+    cursor = conexion.cursor()
+    cursor.execute("UPDATE empleado SET nombre = %s, puesto = %s, salario = %s, telefono = %s WHERE id_empleado = %s",
+                   (nombre, puesto, salario, telefono, id_empleado))
+    conexion.commit()
+
+def eliminar_empleado(id_empleado):
+    cursor = conexion.cursor()
+    cursor.execute("DELETE FROM empleado WHERE id_empleado = %s", (id_empleado,))
+    conexion.commit()
+
 # ----------- CRUD Cliente -----------
 
 class ClienteCRUD(QWidget):
@@ -602,13 +626,130 @@ class CategoriaCRUD(QWidget):
             eliminar_categoria(id_categoria)
             self.actualizar_tabla()
 
+# ----------- CRUD Empleado -----------
+
+class EmpleadoCRUD(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.layout = QVBoxLayout()
+
+        self.titulo = QLabel("Formulario Empleado")
+        self.titulo.setStyleSheet("font-size: 18px; font-weight: bold;")
+        self.layout.addWidget(self.titulo)
+
+        self.nombre_input = QLineEdit()
+        self.nombre_input.setPlaceholderText("Nombre")
+
+        self.puesto_input = QLineEdit()
+        self.puesto_input.setPlaceholderText("Puesto")
+
+        self.salario_input = QLineEdit()
+        self.salario_input.setPlaceholderText("Salario")
+
+        self.telefono_input = QLineEdit()
+        self.telefono_input.setPlaceholderText("Teléfono")
+
+        self.boton_layout = QHBoxLayout()
+
+        self.btn_agregar = QPushButton("Agregar")
+        self.btn_agregar.clicked.connect(self.agregar_empleado)
+        self.boton_layout.addWidget(self.btn_agregar)
+
+        self.btn_actualizar = QPushButton("Actualizar")
+        self.btn_actualizar.clicked.connect(self.actualizar_empleado)
+        self.boton_layout.addWidget(self.btn_actualizar)
+
+        self.btn_eliminar = QPushButton("Eliminar")
+        self.btn_eliminar.clicked.connect(self.eliminar_empleado)
+        self.boton_layout.addWidget(self.btn_eliminar)
+
+        self.layout.addWidget(self.nombre_input)
+        self.layout.addWidget(self.puesto_input)
+        self.layout.addWidget(self.salario_input)
+        self.layout.addWidget(self.telefono_input)
+        self.layout.addLayout(self.boton_layout)
+
+        self.label_lista = QLabel("Lista de Empleados")
+        self.label_lista.setStyleSheet("font-size: 16px; font-weight: bold;")
+        self.layout.addWidget(self.label_lista)
+
+        self.tabla = QTableWidget()
+        self.tabla.setColumnCount(5)
+        self.tabla.setHorizontalHeaderLabels(["ID", "Nombre", "Puesto", "Salario", "Teléfono"])
+        self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.tabla.verticalHeader().setVisible(False)
+        self.tabla.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)
+        self.layout.addWidget(self.tabla)
+
+        self.setLayout(self.layout)
+        self.actualizar_tabla()
+
+    def actualizar_tabla(self):
+        datos = obtener_empleados()
+        self.tabla.setRowCount(0)
+        for fila_num, fila_datos in enumerate(datos):
+            self.tabla.insertRow(fila_num)
+            for col, valor in enumerate(fila_datos):
+                self.tabla.setItem(fila_num, col, QTableWidgetItem(str(valor)))
+
+    def agregar_empleado(self):
+        nombre = self.nombre_input.text()
+        puesto = self.puesto_input.text()
+        salario = self.salario_input.text()
+        telefono = self.telefono_input.text()
+
+        if nombre and puesto and salario and telefono:
+            try:
+                insertar_empleado(nombre, puesto, float(salario), telefono)
+                self.nombre_input.clear()
+                self.puesto_input.clear()
+                self.salario_input.clear()
+                self.telefono_input.clear()
+                self.actualizar_tabla()
+            except ValueError:
+                QMessageBox.warning(self, "Error", "El salario debe ser un número.")
+
+    def actualizar_empleado(self):
+        fila = self.tabla.currentRow()
+        if fila == -1:
+            QMessageBox.warning(self, "Advertencia", "Selecciona un empleado para actualizar.")
+            return
+
+        id_empleado = self.tabla.item(fila, 0).text()
+        nombre = self.tabla.item(fila, 1).text()
+        puesto = self.tabla.item(fila, 2).text()
+        salario = self.tabla.item(fila, 3).text()
+        telefono = self.tabla.item(fila, 4).text()
+
+        if nombre and puesto and salario and telefono:
+            try:
+                actualizar_empleado(id_empleado, nombre, puesto, float(salario), telefono)
+                self.actualizar_tabla()
+            except ValueError:
+                QMessageBox.warning(self, "Error", "El salario debe ser un número.")
+
+    def eliminar_empleado(self):
+        fila = self.tabla.currentRow()
+        if fila == -1:
+            QMessageBox.warning(self, "Advertencia", "Selecciona un empleado para eliminar.")
+            return
+
+        id_empleado = self.tabla.item(fila, 0).text()
+        confirmacion = QMessageBox.question(
+            self, "Confirmación", "¿Estás seguro de eliminar este empleado?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        if confirmacion == QMessageBox.StandardButton.Yes:
+            eliminar_empleado(id_empleado)
+            self.actualizar_tabla()
+
 # ----------- Ventana Principal -----------
 
 class VentanaPrincipal(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Sistema Ferretería La Albania")
-        self.setGeometry(100, 100, 900, 600)
+        self.setGeometry(100, 100, 1000, 600)
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -618,27 +759,35 @@ class VentanaPrincipal(QWidget):
         self.proveedor_crud = ProveedorCRUD()
         self.articulo_crud = ArticuloCRUD()
         self.categoria_crud = CategoriaCRUD()
+        self.empleado_crud = EmpleadoCRUD()
 
         self.stack.addWidget(self.cliente_crud)
         self.stack.addWidget(self.proveedor_crud)
         self.stack.addWidget(self.articulo_crud)
         self.stack.addWidget(self.categoria_crud)
+        self.stack.addWidget(self.empleado_crud)
 
         self.botones_menu = QHBoxLayout()
+
         self.btn_clientes = QPushButton("Clientes")
-        self.btn_proveedores = QPushButton("Proveedores")
-        self.btn_articulos = QPushButton("Artículos")
-        self.btn_categorias = QPushButton("Categorías")
-
         self.btn_clientes.clicked.connect(lambda: self.stack.setCurrentWidget(self.cliente_crud))
-        self.btn_proveedores.clicked.connect(lambda: self.stack.setCurrentWidget(self.proveedor_crud))
-        self.btn_articulos.clicked.connect(lambda: self.stack.setCurrentWidget(self.articulo_crud))
-        self.btn_categorias.clicked.connect(lambda: self.stack.setCurrentWidget(self.categoria_crud))
-
         self.botones_menu.addWidget(self.btn_clientes)
+
+        self.btn_proveedores = QPushButton("Proveedores")
+        self.btn_proveedores.clicked.connect(lambda: self.stack.setCurrentWidget(self.proveedor_crud))
         self.botones_menu.addWidget(self.btn_proveedores)
+
+        self.btn_articulos = QPushButton("Artículos")
+        self.btn_articulos.clicked.connect(lambda: self.stack.setCurrentWidget(self.articulo_crud))
         self.botones_menu.addWidget(self.btn_articulos)
+
+        self.btn_categorias = QPushButton("Categorías")
+        self.btn_categorias.clicked.connect(lambda: self.stack.setCurrentWidget(self.categoria_crud))
         self.botones_menu.addWidget(self.btn_categorias)
+
+        self.btn_empleados = QPushButton("Empleados")
+        self.btn_empleados.clicked.connect(lambda: self.stack.setCurrentWidget(self.empleado_crud))
+        self.botones_menu.addWidget(self.btn_empleados)
 
         self.layout.addLayout(self.botones_menu)
         self.layout.addWidget(self.stack)
