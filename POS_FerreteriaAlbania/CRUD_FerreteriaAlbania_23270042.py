@@ -1,8 +1,8 @@
 import sys
 import mysql.connector
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QLineEdit, QTableWidget, QTableWidgetItem, QStackedWidget, QComboBox, QHeaderView, QMessageBox
+    QApplication, QWidget, QDoubleSpinBox, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QDateEdit, QFormLayout,
+    QLineEdit, QTableWidget, QTableWidgetItem, QStackedWidget, QComboBox, QHeaderView, QMessageBox, QSpinBox
 )
 from PyQt6.QtCore import Qt
 
@@ -66,19 +66,23 @@ def eliminar_proveedor(id_proveedor):
 # Funciones Artículo
 def obtener_articulos():
     cursor = conexion.cursor()
-    cursor.execute("SELECT id_articulo, nombre, descripcion, precio, id_categoria, id_proveedor FROM articulo")
+    cursor.execute("SELECT id_articulo, nombre, descripcion, precio, id_categoria, id_proveedor, stock FROM articulo")
     return cursor.fetchall()
 
-def insertar_articulo(nombre, descripcion, precio, id_categoria, id_proveedor):
+def insertar_articulo(nombre, descripcion, precio, id_categoria, id_proveedor, stock):
     cursor = conexion.cursor()
-    cursor.execute("INSERT INTO articulo (nombre, descripcion, precio, id_categoria, id_proveedor) VALUES (%s, %s, %s, %s, %s)", 
-                   (nombre, descripcion, precio, id_categoria, id_proveedor))
+    cursor.execute(
+        "INSERT INTO articulo (nombre, descripcion, precio, id_categoria, id_proveedor, stock) VALUES (%s, %s, %s, %s, %s, %s)",
+        (nombre, descripcion, precio, id_categoria, id_proveedor, stock)
+    )
     conexion.commit()
 
-def actualizar_articulo(id_articulo, nombre, descripcion, precio, id_categoria, id_proveedor):
+def actualizar_articulo(id_articulo, nombre, descripcion, precio, id_categoria, id_proveedor, stock):
     cursor = conexion.cursor()
-    cursor.execute("UPDATE articulo SET nombre = %s, descripcion = %s, precio = %s, id_categoria = %s, id_proveedor = %s WHERE id_articulo = %s", 
-                   (nombre, descripcion, precio, id_categoria, id_proveedor, id_articulo))
+    cursor.execute(
+        "UPDATE articulo SET nombre = %s, descripcion = %s, precio = %s, id_categoria = %s, id_proveedor = %s, stock = %s WHERE id_articulo = %s",
+        (nombre, descripcion, precio, id_categoria, id_proveedor, stock, id_articulo)
+    )
     conexion.commit()
 
 def eliminar_articulo(id_articulo):
@@ -108,7 +112,6 @@ def eliminar_categoria(id_categoria):
     conexion.commit()
 
 # Funciones Empleados
-# Funciones para Empleado
 def obtener_empleados():
     cursor = conexion.cursor()
     cursor.execute("SELECT id_empleado, nombre, puesto, salario, telefono FROM empleado")
@@ -130,6 +133,107 @@ def eliminar_empleado(id_empleado):
     cursor = conexion.cursor()
     cursor.execute("DELETE FROM empleado WHERE id_empleado = %s", (id_empleado,))
     conexion.commit()
+
+# Funciones Compra y Detalle Compra
+def obtener_compras():
+    cursor = conexion.cursor()
+    cursor.execute("SELECT id_compra, total, fecha, proveedor_id_proveedor FROM compra")
+    return cursor.fetchall()
+
+def insertar_compra(total, fecha, proveedor_id_proveedor):
+    cursor = conexion.cursor()
+    cursor.execute("INSERT INTO compra (total, fecha, proveedor_id_proveedor) VALUES (%s, %s, %s)", 
+                   (total, fecha, proveedor_id_proveedor))
+    conexion.commit()
+    return cursor.lastrowid
+
+def insertar_detalle_compra(compra_id_compra, articulo_id_articulo, cantidad, precio_unitario):
+    cursor = conexion.cursor()
+
+    cursor.execute("SELECT nombre FROM articulo WHERE id_articulo = %s", (articulo_id_articulo,))
+    articulo_nombre = cursor.fetchone()
+
+    if articulo_nombre:
+        articulo_nombre = articulo_nombre[0]
+    else:
+        raise ValueError("Artículo no encontrado")
+
+    cursor.execute("""
+        INSERT INTO detallecompra (nombre_articulo, cantidad, precio_unitario, articulo_id_articulo, compra_id_compra)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (articulo_nombre, cantidad, precio_unitario, articulo_id_articulo, compra_id_compra))
+
+    conexion.commit()
+
+def actualizar_stock(articulo_id_articulo, cantidad):
+    cursor = conexion.cursor()
+    cursor.execute("UPDATE articulo SET stock = stock + %s WHERE id_articulo = %s", (cantidad, articulo_id_articulo))
+    conexion.commit()
+
+# Funciones Venta y Detalle Venta
+def obtener_ventas():
+    cursor = conexion.cursor()
+    cursor.execute("""
+        SELECT id_venta, total, fecha, cliente_id_cliente, empleado_id_empleado
+        FROM venta
+    """)
+    return cursor.fetchall()
+
+def insertar_venta(total, fecha, cliente_id_cliente, empleado_id_empleado):
+    cursor = conexion.cursor()
+    cursor.execute("""
+        INSERT INTO venta (total, fecha, cliente_id_cliente, empleado_id_empleado)
+        VALUES (%s, %s, %s, %s)
+    """, (total, fecha, cliente_id_cliente, empleado_id_empleado))
+    conexion.commit()
+    return cursor.lastrowid
+
+def insertar_detalle_venta(venta_id_venta, articulo_id_articulo, cantidad, precio_unitario):
+    cursor = conexion.cursor()
+
+    cursor.execute("SELECT nombre FROM articulo WHERE id_articulo = %s", (articulo_id_articulo,))
+    articulo_nombre = cursor.fetchone()
+
+    if articulo_nombre:
+        articulo_nombre = articulo_nombre[0]
+    else:
+        raise ValueError("Artículo no encontrado")
+
+    cursor.execute("""
+        INSERT INTO detalleventa (nombre_articulo, cantidad, precio_unitario, articulo_id_articulo, venta_id_venta)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (articulo_nombre, cantidad, precio_unitario, articulo_id_articulo, venta_id_venta))
+
+    conexion.commit()
+
+def descontar_stock(articulo_id_articulo, cantidad):
+    cursor = conexion.cursor()
+    cursor.execute("UPDATE articulo SET stock = stock - %s WHERE id_articulo = %s", (cantidad, articulo_id_articulo))
+    conexion.commit()
+
+def obtener_id_cliente_por_nombre(nombre_cliente):
+    cursor = conexion.cursor()
+    cursor.execute("SELECT id_cliente FROM cliente WHERE nombre = %s", (nombre_cliente,))
+    resultado = cursor.fetchone()
+    if resultado:
+        return resultado[0]
+    return None 
+
+def obtener_id_empleado_por_nombre(nombre_empleado):
+    cursor = conexion.cursor()
+    cursor.execute("SELECT id_empleado FROM empleado WHERE nombre = %s", (nombre_empleado,))
+    resultado = cursor.fetchone()
+    if resultado:
+        return resultado[0] 
+    return None
+
+def obtener_id_articulo_por_nombre(nombre_articulo):
+    cursor = conexion.cursor()
+    cursor.execute("SELECT id_articulo FROM articulo WHERE nombre = %s", (nombre_articulo,))
+    resultado = cursor.fetchone()
+    if resultado:
+        return resultado[0]
+    return None 
 
 # ----------- CRUD Cliente -----------
 
@@ -158,7 +262,6 @@ class ClienteCRUD(QWidget):
         self.direccion_input = QLineEdit()
         self.direccion_input.setPlaceholderText("Dirección")
 
-        # Fila con botones de Agregar, Actualizar y Eliminar
         self.boton_layout = QHBoxLayout()
 
         self.btn_agregar = QPushButton("Agregar")
@@ -192,7 +295,6 @@ class ClienteCRUD(QWidget):
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)
         self.layout.addWidget(self.tabla)
 
-        # Botones de navegación
         self.nav_layout = QHBoxLayout()
 
         self.btn_inicio = QPushButton("Inicio")
@@ -282,7 +384,6 @@ class ProveedorCRUD(QWidget):
         self.titulo.setStyleSheet("font-size: 18px; font-weight: bold;")
         self.layout.addWidget(self.titulo)
 
-        # Campos para los proveedores
         self.nombre_input = QLineEdit()
         self.nombre_input.setPlaceholderText("Nombre")
 
@@ -304,7 +405,6 @@ class ProveedorCRUD(QWidget):
         self.pais_input = QLineEdit()
         self.pais_input.setPlaceholderText("País")
 
-        # Fila con botones de Agregar, Actualizar y Eliminar
         self.boton_layout = QHBoxLayout()
 
         self.btn_agregar = QPushButton("Agregar")
@@ -418,7 +518,6 @@ class ArticuloCRUD(QWidget):
         self.titulo.setStyleSheet("font-size: 18px; font-weight: bold;")
         self.layout.addWidget(self.titulo)
 
-        # Campos para los artículos
         self.nombre_input = QLineEdit()
         self.nombre_input.setPlaceholderText("Nombre")
 
@@ -434,7 +533,9 @@ class ArticuloCRUD(QWidget):
         self.id_proveedor_input = QLineEdit()
         self.id_proveedor_input.setPlaceholderText("ID Proveedor")
 
-        # Botones
+        self.stock_input = QLineEdit()
+        self.stock_input.setPlaceholderText("Stock")
+
         self.boton_layout = QHBoxLayout()
 
         self.btn_agregar = QPushButton("Agregar")
@@ -454,6 +555,7 @@ class ArticuloCRUD(QWidget):
         self.layout.addWidget(self.precio_input)
         self.layout.addWidget(self.id_categoria_input)
         self.layout.addWidget(self.id_proveedor_input)
+        self.layout.addWidget(self.stock_input)
         self.layout.addLayout(self.boton_layout)
 
         self.label_lista = QLabel("Lista de Artículos")
@@ -461,8 +563,11 @@ class ArticuloCRUD(QWidget):
         self.layout.addWidget(self.label_lista)
 
         self.tabla = QTableWidget()
-        self.tabla.setColumnCount(6)
-        self.tabla.setHorizontalHeaderLabels(["ID", "Nombre", "Descripción", "Precio", "ID Categoría", "ID Proveedor"])
+        self.tabla.setColumnCount(7)
+        self.tabla.setHorizontalHeaderLabels([
+            "ID", "Nombre", "Descripción", "Precio",
+            "ID Categoría", "ID Proveedor", "Stock"
+        ])
         self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tabla.verticalHeader().setVisible(False)
         self.tabla.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)
@@ -485,18 +590,25 @@ class ArticuloCRUD(QWidget):
         precio = self.precio_input.text()
         id_categoria = self.id_categoria_input.text()
         id_proveedor = self.id_proveedor_input.text()
+        stock = self.stock_input.text()
 
-        if nombre and descripcion and precio and id_categoria and id_proveedor:
+        if nombre and descripcion and precio and id_categoria and id_proveedor and stock:
             try:
-                insertar_articulo(nombre, descripcion, float(precio), int(id_categoria), int(id_proveedor))
+                insertar_articulo(
+                    nombre, descripcion, float(precio),
+                    int(id_categoria), int(id_proveedor), int(stock)
+                )
                 self.nombre_input.clear()
                 self.descripcion_input.clear()
                 self.precio_input.clear()
                 self.id_categoria_input.clear()
                 self.id_proveedor_input.clear()
+                self.stock_input.clear()
                 self.actualizar_tabla()
             except ValueError:
-                QMessageBox.warning(self, "Error", "Precio, ID Categoría e ID Proveedor deben ser números.")
+                QMessageBox.warning(self, "Error", "Precio, ID Categoría, ID Proveedor y Stock deben ser números.")
+        else:
+            QMessageBox.warning(self, "Advertencia", "Por favor, llena todos los campos.")
 
     def actualizar_articulo(self):
         fila_seleccionada = self.tabla.currentRow()
@@ -510,13 +622,17 @@ class ArticuloCRUD(QWidget):
         precio = self.tabla.item(fila_seleccionada, 3).text()
         id_categoria = self.tabla.item(fila_seleccionada, 4).text()
         id_proveedor = self.tabla.item(fila_seleccionada, 5).text()
+        stock = self.tabla.item(fila_seleccionada, 6).text()
 
-        if nombre and descripcion and precio and id_categoria and id_proveedor:
+        if nombre and descripcion and precio and id_categoria and id_proveedor and stock:
             try:
-                actualizar_articulo(id_articulo, nombre, descripcion, float(precio), int(id_categoria), int(id_proveedor))
+                actualizar_articulo(
+                    int(id_articulo), nombre, descripcion,
+                    float(precio), int(id_categoria), int(id_proveedor), int(stock)
+                )
                 self.actualizar_tabla()
             except ValueError:
-                QMessageBox.warning(self, "Error", "Precio, ID Categoría e ID Proveedor deben ser números.")
+                QMessageBox.warning(self, "Error", "Precio, ID Categoría, ID Proveedor y Stock deben ser números.")
 
     def eliminar_articulo(self):
         fila_seleccionada = self.tabla.currentRow()
@@ -545,12 +661,10 @@ class CategoriaCRUD(QWidget):
         self.titulo.setStyleSheet("font-size: 18px; font-weight: bold;")
         self.layout.addWidget(self.titulo)
 
-        # Campo para la categoría
         self.nombre_input = QLineEdit()
         self.nombre_input.setPlaceholderText("Nombre de la Categoría")
         self.layout.addWidget(self.nombre_input)
 
-        # Botones
         self.boton_layout = QHBoxLayout()
 
         self.btn_agregar = QPushButton("Agregar")
@@ -743,6 +857,215 @@ class EmpleadoCRUD(QWidget):
             eliminar_empleado(id_empleado)
             self.actualizar_tabla()
 
+# ----------- CRUD Compra -----------
+
+class CompraCRUD(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.layout = QVBoxLayout()
+        self.setWindowTitle("Formulario de Compra")
+
+        self.fecha_input = QDateEdit()
+        self.fecha_input.setDisplayFormat("yyyy-MM-dd")
+
+        self.proveedor_input = QComboBox()
+        self.cargar_proveedores()
+
+        self.articulo_input = QComboBox()
+        self.cargar_articulos()
+
+        self.cantidad_input = QSpinBox()
+        self.cantidad_input.setMinimum(1)
+
+        self.precio_input = QLineEdit()
+        self.precio_input.setPlaceholderText("Precio Unitario")
+
+        self.total_input = QLineEdit()
+        self.total_input.setPlaceholderText("Total")
+        self.total_input.setReadOnly(True)
+
+        self.boton_layout = QHBoxLayout()
+
+        self.btn_agregar = QPushButton("Agregar Compra")
+        self.btn_agregar.clicked.connect(self.agregar_compra)
+        self.boton_layout.addWidget(self.btn_agregar)
+
+        self.tabla_compras = QTableWidget()
+        self.tabla_compras.setColumnCount(4)
+        self.tabla_compras.setHorizontalHeaderLabels(["ID Compra", "Fecha", "Proveedor", "Total"])
+        self.tabla_compras.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.tabla_compras.verticalHeader().setVisible(False)
+        self.tabla_compras.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)
+        self.layout.addWidget(self.fecha_input)
+        self.layout.addWidget(self.proveedor_input)
+        self.layout.addWidget(self.articulo_input)
+        self.layout.addWidget(self.cantidad_input)
+        self.layout.addWidget(self.precio_input)
+        self.layout.addWidget(self.total_input)
+        self.layout.addLayout(self.boton_layout)
+        self.layout.addWidget(self.tabla_compras)
+
+        self.setLayout(self.layout)
+
+        self.cargar_compras()
+
+    def cargar_proveedores(self):
+        cursor = conexion.cursor()
+        cursor.execute("SELECT id_proveedor, nombre FROM proveedor")
+        proveedores = cursor.fetchall()
+        for proveedor in proveedores:
+            self.proveedor_input.addItem(proveedor[1], proveedor[0])
+
+    def cargar_articulos(self):
+        cursor = conexion.cursor()
+        cursor.execute("SELECT id_articulo, nombre FROM articulo")
+        articulos = cursor.fetchall()
+        for articulo in articulos:
+            self.articulo_input.addItem(articulo[1], articulo[0])
+
+    def agregar_compra(self):
+        fecha = self.fecha_input.text()
+        proveedor_id_proveedor = self.proveedor_input.currentData()
+        articulo_id_articulo = self.articulo_input.currentData()
+        cantidad = self.cantidad_input.value()
+        precio_unitario = float(self.precio_input.text())
+
+        if fecha and proveedor_id_proveedor and articulo_id_articulo and cantidad and precio_unitario:
+            total = cantidad * precio_unitario
+            self.total_input.setText(f"{total:.2f}")
+
+            compra_id_compra = insertar_compra(total, fecha, proveedor_id_proveedor)
+
+            insertar_detalle_compra(compra_id_compra, articulo_id_articulo, cantidad, precio_unitario)
+
+            self.cantidad_input.setValue(1)
+            self.precio_input.clear()
+
+            self.cargar_compras()
+
+            QMessageBox.information(self, "Éxito", "Compra registrada correctamente.")
+        else:
+            QMessageBox.warning(self, "Advertencia", "Por favor llena todos los campos.")
+
+    def cargar_compras(self):
+        cursor = conexion.cursor()
+        cursor.execute("SELECT c.id_compra, c.fecha, p.nombre, c.total FROM compra c JOIN proveedor p ON c.proveedor_id_proveedor = p.id_proveedor")
+        compras = cursor.fetchall()
+
+        self.tabla_compras.setRowCount(0)
+
+        for row_number, row_data in enumerate(compras):
+            self.tabla_compras.insertRow(row_number)
+            for column_number, data in enumerate(row_data):
+                self.tabla_compras.setItem(row_number, column_number, QTableWidgetItem(str(data)))
+
+# ----------- CRUD Venta -----------
+
+class VentaCRUD(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Registro de Venta")
+        layout = QVBoxLayout(self)
+
+        form_layout = QFormLayout()
+        self.fecha_input = QLineEdit()
+        self.fecha_input.setPlaceholderText("YYYY-MM-DD")
+
+        self.total_input = QLineEdit()
+        self.total_input.setReadOnly(True)
+
+        self.cliente_combo = QComboBox()
+        self.cliente_combo.addItems([row[1] for row in obtener_clientes()])
+
+        self.empleado_combo = QComboBox()
+        self.empleado_combo.addItems([row[1] for row in obtener_empleados()])
+
+        form_layout.addRow("Fecha:", self.fecha_input)
+        form_layout.addRow("Total:", self.total_input)
+        form_layout.addRow("Cliente:", self.cliente_combo)
+        form_layout.addRow("Empleado:", self.empleado_combo)
+
+        self.articulo_combo = QComboBox()
+        self.articulo_combo.addItems([a[1] for a in obtener_articulos()])
+
+        self.articulo_combo.currentIndexChanged.connect(self.actualizar_precio)
+
+        self.cantidad_input = QSpinBox()
+        self.cantidad_input.setRange(1, 1000)
+        self.cantidad_input.valueChanged.connect(self.calcular_total)
+
+        form_layout.addRow("Artículo:", self.articulo_combo)
+        form_layout.addRow("Cantidad:", self.cantidad_input)
+
+        self.btn_guardar = QPushButton("Registrar Venta")
+        self.btn_guardar.clicked.connect(self.agregar_venta)
+
+        layout.addLayout(form_layout)
+        layout.addWidget(self.btn_guardar)
+
+        self.tabla_ventas = QTableWidget()
+        layout.addWidget(self.tabla_ventas)
+        self.tabla_ventas.setColumnCount(5)
+        self.tabla_ventas.setHorizontalHeaderLabels(["ID", "Total", "Fecha", "Cliente", "Empleado"])
+        self.tabla_ventas.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.mostrar_ventas()
+
+        self.precio_unitario = 0.0
+
+    def actualizar_precio(self):
+        articulo_nombre = self.articulo_combo.currentText()
+        precio = self.obtener_precio_articulo(articulo_nombre)
+        self.precio_unitario = precio
+        self.calcular_total()
+
+    def obtener_precio_articulo(self, nombre_articulo):
+        cursor = conexion.cursor()
+        cursor.execute("SELECT precio FROM articulo WHERE nombre = %s", (nombre_articulo,))
+        resultado = cursor.fetchone()
+        if resultado:
+            return resultado[0]
+        return 0.0
+
+    def calcular_total(self):
+        cantidad = self.cantidad_input.value()
+        total = cantidad * self.precio_unitario
+        self.total_input.setText(f"{total:.2f}")
+
+    def agregar_venta(self):
+        fecha = self.fecha_input.text()
+        total = float(self.total_input.text())
+        cliente_nombre = self.cliente_combo.currentText()
+        empleado_nombre = self.empleado_combo.currentText()
+
+        cliente_id = obtener_id_cliente_por_nombre(cliente_nombre)
+        empleado_id = obtener_id_empleado_por_nombre(empleado_nombre)
+
+        if not cliente_id or not empleado_id:
+            print("Error: Cliente o Empleado no encontrado.")
+            return
+
+        venta_id = insertar_venta(total, fecha, cliente_id, empleado_id)
+
+        articulo_nombre = self.articulo_combo.currentText()
+        articulo_id = obtener_id_articulo_por_nombre(articulo_nombre)
+
+        if not articulo_id:
+            print("Error: Artículo no encontrado.")
+            return
+
+        cantidad = self.cantidad_input.value()
+
+        insertar_detalle_venta(venta_id, articulo_id, cantidad, self.precio_unitario)
+        self.mostrar_ventas()
+
+    def mostrar_ventas(self):
+        datos = obtener_ventas()
+        self.tabla_ventas.setRowCount(len(datos))
+        for row_idx, row_data in enumerate(datos):
+            for col_idx, value in enumerate(row_data):
+                self.tabla_ventas.setItem(row_idx, col_idx, QTableWidgetItem(str(value)))
+
 # ----------- Ventana Principal -----------
 
 class VentanaPrincipal(QWidget):
@@ -761,11 +1084,17 @@ class VentanaPrincipal(QWidget):
         self.categoria_crud = CategoriaCRUD()
         self.empleado_crud = EmpleadoCRUD()
 
+        self.compra_detalle_crud = CompraCRUD()
+
+        self.venta_crud = VentaCRUD()
+
         self.stack.addWidget(self.cliente_crud)
         self.stack.addWidget(self.proveedor_crud)
         self.stack.addWidget(self.articulo_crud)
         self.stack.addWidget(self.categoria_crud)
         self.stack.addWidget(self.empleado_crud)
+        self.stack.addWidget(self.compra_detalle_crud)
+        self.stack.addWidget(self.venta_crud)
 
         self.botones_menu = QHBoxLayout()
 
@@ -789,8 +1118,17 @@ class VentanaPrincipal(QWidget):
         self.btn_empleados.clicked.connect(lambda: self.stack.setCurrentWidget(self.empleado_crud))
         self.botones_menu.addWidget(self.btn_empleados)
 
+        self.btn_compras = QPushButton("Compras")
+        self.btn_compras.clicked.connect(lambda: self.stack.setCurrentWidget(self.compra_detalle_crud))
+        self.botones_menu.addWidget(self.btn_compras)
+
+        self.btn_ventas = QPushButton("Ventas")
+        self.btn_ventas.clicked.connect(lambda: self.stack.setCurrentWidget(self.venta_crud))
+        self.botones_menu.addWidget(self.btn_ventas)
+
         self.layout.addLayout(self.botones_menu)
         self.layout.addWidget(self.stack)
+
 
 # ----------- Main -----------
 
