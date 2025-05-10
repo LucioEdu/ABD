@@ -3,9 +3,7 @@
 -- dbFerreteriaAlbania
 
 DROP DATABASE IF EXISTS ferreteriaalbania_23270042;
-
 CREATE DATABASE ferreteriaalbania_23270042;
-
 USE ferreteriaalbania_23270042;
 
 -- Tabla de Categorías
@@ -19,7 +17,7 @@ CREATE TABLE categoria (
 CREATE TABLE cliente (
     id_cliente INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
-    telefono VARCHAR(15),
+    telefono VARCHAR(100),
     email VARCHAR(100),
     RFC VARCHAR(13),
     direccion VARCHAR(100)
@@ -34,15 +32,16 @@ CREATE TABLE empleado (
     telefono VARCHAR(10)
 );
 
--- Tabla de Ventas
-CREATE TABLE venta (
-    id_venta INT AUTO_INCREMENT PRIMARY KEY,
-    fecha DATE NULL,
-    total DECIMAL(10,2) NOT NULL,
-    cliente_id_cliente INT NOT NULL,
-    empleado_id_empleado INT NOT NULL,
-    FOREIGN KEY (cliente_id_cliente) REFERENCES cliente(id_cliente),
-    FOREIGN KEY (empleado_id_empleado) REFERENCES empleado(id_empleado)
+-- Tabla de Proveedores
+CREATE TABLE proveedor (
+    id_proveedor INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    telefono CHAR(10),
+    email VARCHAR(100),
+    direccion VARCHAR(100),
+    ciudad VARCHAR(100),
+    estado VARCHAR(100),
+    pais VARCHAR(100)
 );
 
 -- Tabla de Artículos
@@ -51,9 +50,22 @@ CREATE TABLE articulo (
     nombre VARCHAR(100) NOT NULL,
     descripcion VARCHAR(100),
     precio DECIMAL(10,2) NOT NULL,
-    id_categoria INT NULL,
-    id_proveedor INT NULL,
-    FOREIGN KEY (id_categoria) REFERENCES categoria(id_categoria)
+    id_categoria INT,
+    id_proveedor INT,
+    stock INT NOT NULL,
+    FOREIGN KEY (id_categoria) REFERENCES categoria(id_categoria),
+    FOREIGN KEY (id_proveedor) REFERENCES proveedor(id_proveedor)
+);
+
+-- Tabla de Ventas
+CREATE TABLE venta (
+    id_venta INT AUTO_INCREMENT PRIMARY KEY,
+    fecha DATE,
+    total DECIMAL(10,2) NOT NULL,
+    cliente_id_cliente INT NOT NULL,
+    empleado_id_empleado INT NOT NULL,
+    FOREIGN KEY (cliente_id_cliente) REFERENCES cliente(id_cliente),
+    FOREIGN KEY (empleado_id_empleado) REFERENCES empleado(id_empleado)
 );
 
 -- Tabla de Detalle de Ventas
@@ -68,23 +80,11 @@ CREATE TABLE detalleventa (
     FOREIGN KEY (articulo_id_articulo) REFERENCES articulo(id_articulo)
 );
 
--- Tabla de Proveedores
-CREATE TABLE proveedor (
-    id_proveedor INT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    telefono CHAR(10),
-    email VARCHAR(100),
-    direccion VARCHAR(100),
-    ciudad VARCHAR(100),
-    estado VARCHAR(100),
-    pais VARCHAR(100)
-);
-
 -- Tabla de Compras
 CREATE TABLE compra (
     id_compra INT AUTO_INCREMENT PRIMARY KEY,
     total DECIMAL(10,2) NOT NULL,
-    fecha DATE NULL,
+    fecha DATE,
     proveedor_id_proveedor INT NOT NULL,
     FOREIGN KEY (proveedor_id_proveedor) REFERENCES proveedor(id_proveedor)
 );
